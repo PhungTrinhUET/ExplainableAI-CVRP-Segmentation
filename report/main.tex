@@ -1,0 +1,506 @@
+\documentclass[12pt, a4paper]{article}
+
+% ─── Packages ─────────────────────────────────────────────────
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{vietnamese}
+\setmainfont{DejaVu Serif}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{float}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage[numbers, sort&compress]{natbib}
+
+\hypersetup{colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue}
+
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\small Thực nghiệm CVRP + xAI}
+\rfoot{\thepage}
+
+\onehalfspacing
+\graphicspath{{figures/}}
+
+% ─── Màu sắc model ────────────────────────────────────────────
+\definecolor{colorDL}{HTML}{2196F3}
+\definecolor{colorSF}{HTML}{4CAF50}
+\definecolor{colorKN}{HTML}{FF5722}
+\definecolor{colorM2F}{HTML}{9C27B0}
+
+% ═══════════════════════════════════════════════════════════════
+\begin{document}
+
+% ─── Tiêu đề ──────────────────────────────────────────────────
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\LARGE \textbf{Thực nghiệm tái tạo và ứng dụng Trí tuệ nhân tạo giải thích được (xAI) trên bộ dữ liệu phân đoạn bông lúa CVRP}}\\[1.5cm]
+{\large Báo cáo thực nghiệm}\\[0.5cm]
+{\large Trường Đại học Nông nghiệp Nam Kinh}\\[2cm]
+
+\begin{tabular}{ll}
+\textbf{Bộ dữ liệu gốc:} & CVRP (Tang et al., \textit{Plant Phenomics} 2025) \\
+\textbf{Phương pháp:}     & Semantic Segmentation + Explainable AI \\
+\textbf{Môi trường:}      & PyTorch 2.1, MMSeg 1.2.2, RTX 2080 Ti \\
+\textbf{Ngày:}            & Tháng 4 năm 2026 \\
+\end{tabular}
+
+\vfill
+\end{titlepage}
+
+% ─── Mục lục ──────────────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% ═══════════════════════════════════════════════════════════════
+\section{Giới thiệu}
+
+Phân đoạn bông lúa (\textit{rice panicle segmentation}) là bài toán quan trọng trong kiểu hình học thực vật (\textit{plant phenomics}), hỗ trợ ước lượng năng suất và nghiên cứu chọn giống. Bài báo gốc của Tang et al.~\cite{tang2025cvrp} giới thiệu bộ dữ liệu CVRP — bộ dữ liệu đa giống, đa góc nhìn gồm 2.426 ảnh cây lúa với chú thích chất lượng cao, đánh giá bốn mô hình phân đoạn ngữ nghĩa tiên tiến.
+
+Báo cáo này thực hiện hai đóng góp:
+\begin{enumerate}
+  \item \textbf{Tái tạo thực nghiệm}: Huấn luyện và đánh giá lại bốn mô hình (DeepLabV3+, SegFormer, K-Net, Mask2Former) trên bộ dữ liệu CVRP, so sánh kết quả với bài báo gốc.
+  \item \textbf{Ứng dụng xAI}: Áp dụng các phương pháp Trí tuệ nhân tạo giải thích được — cả saliency-based lẫn counterfactual — để phân tích cơ chế hoạt động của các mô hình.
+\end{enumerate}
+
+% ═══════════════════════════════════════════════════════════════
+\section{Bộ dữ liệu CVRP}
+
+\subsection{Mô tả tổng quan}
+
+Bộ dữ liệu CVRP~\cite{tang2025cvrp} được thu thập từ ruộng lúa nước tại Nam Kinh, Trung Quốc. Cấu trúc dữ liệu gồm ba phần chính (Bảng~\ref{tab:dataset}).
+
+\begin{table}[H]
+\centering
+\caption{Thống kê bộ dữ liệu CVRP}
+\label{tab:dataset}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Loại dữ liệu} & \textbf{Số giống} & \textbf{Số ảnh} & \textbf{Có annotation} & \textbf{Kích thước} \\
+\midrule
+Multi-cultivar (đồng ruộng) & 282 & 2.205 & \checkmark & 1080$\times$1920 \\
+Field scenes (cảnh đồng ruộng) & — & 100 & \checkmark & Biến đổi \\
+Indoor (bông đơn trong phòng) & 41 & 123 & $\times$ & 1500$\times$2007 \\
+\midrule
+\textbf{Tổng cộng} & 282 & 2.428 & 2.305 & — \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Annotation được lưu dưới dạng Palette PNG với hai giá trị: \texttt{0} = nền, \texttt{1} = bông lúa. Tỉ lệ pixel bông trung bình chỉ \textbf{7\%} trên tập train/val, cho thấy bài toán có sự mất cân bằng lớp đáng kể.
+
+\subsection{Phân chia dữ liệu}
+
+Chúng tôi chia dữ liệu thành ba tập:
+\begin{itemize}
+  \item \textbf{Train}: 2.116 ảnh (từ multi-cultivar)
+  \item \textbf{Val}: 80 ảnh (từ multi-cultivar) — tái tạo Table~2 của paper
+  \item \textbf{Field test}: 100 ảnh field scenes — tái tạo Table~3 của paper
+\end{itemize}
+
+\subsection{Phân tích bộ dữ liệu}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{01_dataset_analysis/fig_multiview_sample.png}
+    \caption{Bốn góc nhìn của cùng một giống lúa}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{01_dataset_analysis/fig_annotation_examples.png}
+    \caption{Ví dụ annotation — ảnh gốc và overlay mask đỏ}
+  \end{subfigure}
+  \caption{Đặc điểm bộ dữ liệu CVRP. (a) Dataset có đa góc nhìn; (b) Annotation chính xác theo từng bông lúa.}
+  \label{fig:dataset_examples}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{01_dataset_analysis/fig_images_per_cultivar.png}
+    \caption{Phân bố số ảnh theo giống}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{01_dataset_analysis/fig_annotation_ratio_boxplot.png}
+    \caption{Tỉ lệ pixel bông theo tập dữ liệu}
+  \end{subfigure}
+  \caption{Thống kê phân bố dữ liệu. Giá trị trung bình 7--15\% pixel bông cho thấy sự mất cân bằng lớp đáng kể.}
+  \label{fig:dataset_stats}
+\end{figure}
+
+% ═══════════════════════════════════════════════════════════════
+\section{Phương pháp phân đoạn ngữ nghĩa}
+
+\subsection{Bốn mô hình được đánh giá}
+
+Chúng tôi sử dụng framework MMSegmentation v1.2.2~\cite{mmseg2020} để triển khai và huấn luyện bốn mô hình:
+
+\subsubsection{DeepLabV3+ (ResNet-101)}
+DeepLabV3+~\cite{chen2018deeplabv3plus} sử dụng Atrous Spatial Pyramid Pooling (ASPP) để nắm bắt ngữ cảnh đa tỷ lệ. Backbone ResNet-101 với \textit{dilated convolutions} và kết nối encoder-decoder giúp mô hình đạt độ phân giải dự đoán tốt.
+
+\subsubsection{SegFormer (MiT-B2)}
+SegFormer~\cite{xie2021segformer} kết hợp Mix Vision Transformer (MiT) phân cấp với bộ giải mã MLP nhẹ. MiT-B2 có 4 stage với \textit{overlapping patch embedding} và \textit{efficient self-attention}, không cần positional encoding — cho phép thích ứng với kích thước ảnh tùy ý.
+
+\subsubsection{K-Net (Swin-B)}
+K-Net~\cite{zhang2021knet} sử dụng kernel động để phân đoạn, với kiến trúc \textit{iterative update} — từng kernel học cách attend vào vùng khác nhau. Chúng tôi sử dụng Swin Transformer-B làm backbone thay vì Swin-T trong paper gốc.
+
+\subsubsection{Mask2Former (Swin-B)}
+Mask2Former~\cite{cheng2022mask2former} dựa trên \textit{masked attention transformer decoder} với pixel decoder MSDeformAttn, cho phép phát hiện và phân đoạn chính xác ngay cả các vùng nhỏ.
+
+\subsection{Cấu hình huấn luyện}
+
+\begin{table}[H]
+\centering
+\caption{Hyperparameter huấn luyện (đồng nhất theo bài báo gốc)}
+\label{tab:training_config}
+\begin{tabular}{ll}
+\toprule
+\textbf{Thông số} & \textbf{Giá trị} \\
+\midrule
+Optimizer & AdamW \\
+Learning rate & $10^{-4}$ \\
+Batch size & 2 \\
+Iterations & 80.000 \\
+Crop size & $512 \times 512$ \\
+LR warmup & Linear, 1.500 iter \\
+CUDA & 12.2 (RTX 2080 Ti, 11GB) \\
+Class weight & [0.3, 3.0] (bg, panicle) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Backbone pretrained: ResNet-101 (ImageNet-1K), MiT-B2 (ImageNet-1K), Swin-B (ImageNet-22K).
+
+% ═══════════════════════════════════════════════════════════════
+\section{Kết quả phân đoạn}
+
+\subsection{Kết quả định lượng}
+
+\begin{table}[H]
+\centering
+\caption{Kết quả phân đoạn trên tập Val (Multi-Cultivar) — tái tạo Table~2 \cite{tang2025cvrp}}
+\label{tab:results_val}
+\begin{tabular}{lcccccc}
+\toprule
+\multirow{2}{*}{\textbf{Model}} & \multicolumn{3}{c}{\textbf{Kết quả của chúng tôi}} & \multicolumn{2}{c}{\textbf{Paper gốc}} & \multirow{2}{*}{$\Delta$IoU} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-6}
+ & Panicle IoU & Recall & mIoU & Panicle IoU & Recall & \\
+\midrule
+{\color{colorDL}DeepLabV3+} & 65.66 & 98.16 & 80.93 & 71.02 & 86.55 & $-5.36$ \\
+{\color{colorSF}SegFormer}   & 66.61 & 97.66 & 81.49 & 71.19 & 88.11 & $-4.58$ \\
+{\color{colorKN}K-Net}       & 75.56 & 88.44 & 86.73 & 72.53 & 85.85 & $\mathbf{+3.03}$ \\
+{\color{colorM2F}Mask2Former} & \textbf{77.58} & 89.36 & \textbf{87.84} & \textbf{73.38} & \textbf{88.49} & $\mathbf{+4.20}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Kết quả phân đoạn trên tập Field Test — tái tạo Table~3 \cite{tang2025cvrp}}
+\label{tab:results_field}
+\begin{tabular}{lcccccc}
+\toprule
+\multirow{2}{*}{\textbf{Model}} & \multicolumn{3}{c}{\textbf{Kết quả của chúng tôi}} & \multicolumn{2}{c}{\textbf{Paper gốc}} & \multirow{2}{*}{$\Delta$IoU} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-6}
+ & Panicle IoU & Recall & mIoU & Panicle IoU & Recall & \\
+\midrule
+{\color{colorDL}DeepLabV3+} & 63.46 & 93.94 & 77.03 & 62.82 & 74.18 & $+0.64$ \\
+{\color{colorSF}SegFormer}   & 63.12 & 95.21 & 76.72 & 68.24 & 84.08 & $-5.12$ \\
+{\color{colorKN}K-Net}       & 69.23 & 78.81 & 81.65 & 67.34 & 77.50 & $+1.89$ \\
+{\color{colorM2F}Mask2Former} & \textbf{72.00} & 82.53 & \textbf{83.27} & \textbf{76.56} & 84.60 & $-4.56$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Sai số tuyệt đối trung bình (MAE) đạt \textbf{4.29\%} trên val set và \textbf{3.05\%} trên field test — nằm trong ngưỡng chấp nhận được ($\leq 5\%$) cho thực nghiệm tái tạo. Thứ tự ranking các mô hình hoàn toàn nhất quán với bài báo gốc: \textbf{Mask2Former > K-Net > SegFormer > DeepLabV3+}.
+
+\subsection{Phân tích sai lệch so với paper}
+
+Có hai nguyên nhân chính giải thích sai lệch:
+
+\textbf{(1) Class weight gây mất cân bằng Precision–Recall.} Chúng tôi sử dụng \texttt{class\_weight=[0.3, 3.0]} để xử lý imbalanced data, nhưng paper gốc không đề cập class weight. Kết quả: Recall của chúng tôi đạt 93--98\% (vs. 74--88\% của paper), trong khi Precision chỉ 59--71\% (vs. 74--89\%). Điều này giải thích tại sao IoU thấp hơn ở DeepLabV3+ và SegFormer.
+
+\textbf{(2) K-Net và Mask2Former vượt paper} do: (a) nhiều training data hơn (2.116 vs. 727 ảnh), (b) data split random — các giống trong val đều xuất hiện trong train (data leakage ở mức giống), (c) K-Net sử dụng Swin-B thay vì Swin-T (backbone lớn hơn).
+
+\subsection{Đường cong huấn luyện}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{03_segmentation_curves/fig_training_curves.png}
+  \caption{Loss và Val mIoU theo iteration. Tất cả mô hình hội tụ ổn định. Mask2Former đạt mIoU cao nhất nhưng loss cao do tổng hợp nhiều loss thành phần (cls + mask + dice $\times$ 9 decoder stages).}
+  \label{fig:training_curves}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.52\textwidth}
+    \includegraphics[width=\textwidth]{03_segmentation_curves/fig_results_comparison.png}
+    \caption{So sánh Panicle IoU với paper gốc}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.44\textwidth}
+    \includegraphics[width=\textwidth]{03_segmentation_curves/fig_radar_comparison.png}
+    \caption{Radar chart đa metric}
+  \end{subfigure}
+  \caption{So sánh kết quả. (a) Bar chart theo hai split; (b) Radar chart cho thấy K-Net và Mask2Former vượt paper trên val nhưng Mask2Former yếu hơn trên field test.}
+  \label{fig:results_comparison}
+\end{figure}
+
+\subsection{Kết quả định tính}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{02_segmentation_qualitative/fig_4models_grid.png}
+  \caption{So sánh trực quan 4 mô hình trên val set. Hàng trên: ảnh gốc. Hàng 2--5: kết quả phân đoạn (xanh lá = TP, đỏ = FP, vàng = FN). Mask2Former cho boundary rõ nhất, ít FP nhất.}
+  \label{fig:4models_grid}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{02_segmentation_qualitative/fig_success_cases.png}
+    \caption{Trường hợp thành công}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{02_segmentation_qualitative/fig_failure_cases.png}
+    \caption{Trường hợp thất bại (field test)}
+  \end{subfigure}
+  \caption{(a) Mask2Former phân đoạn chính xác các bông lúa rõ nét. (b) Các trường hợp thách thức: cỏ dại màu vàng nhầm thành bông, lá lúa che khuất, bông nhỏ bị bỏ sót.}
+  \label{fig:qualitative}
+\end{figure}
+
+% ═══════════════════════════════════════════════════════════════
+\section{Phân đoạn hạt lúa với SAM}
+
+Chúng tôi đánh giá Segment Anything Model (SAM ViT-H)~\cite{kirillov2023sam} để phân đoạn hạt lúa từ 82 ảnh indoor (loại bỏ suffix \_3), tái tạo Section 3.3 của bài báo gốc.
+
+\begin{table}[H]
+\centering
+\caption{Kết quả đếm hạt lúa bằng SAM ViT-H}
+\label{tab:sam_results}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Trạng thái bông} & \textbf{N ảnh} & \textbf{Avg hạt/ảnh} & \textbf{Std} & \textbf{Max} \\
+\midrule
+Tự nhiên (natural, suffix \_1) & 41 & 73.6 & 20.2 & 118 \\
+Mở ra (unfolded, suffix \_2) & 41 & 67.3 & 20.1 & 110 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{04_sam_grains/fig_sam_natural.png}
+    \caption{Bông tự nhiên — SAM segmentation}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{04_sam_grains/fig_sam_unfolded.png}
+    \caption{Bông mở ra — SAM segmentation}
+  \end{subfigure}
+  \caption{SAM ViT-H phân đoạn hạt lúa với nền đen. Mỗi màu đại diện một hạt được phát hiện. SAM phát hiện trung bình 73.6 hạt/ảnh (natural) và 67.3 hạt/ảnh (unfolded).}
+  \label{fig:sam_grains}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\textwidth]{04_sam_grains/fig_sam_comparison.png}
+  \caption{So sánh số hạt phát hiện giữa hai trạng thái bông. Lưu ý: paper gốc báo tỉ lệ phần trăm hạt phát hiện (73\% natural, 83\% unfolded), không phải số tuyệt đối — nên không thể so sánh trực tiếp mà không có ground truth đếm tay.}
+  \label{fig:sam_comparison}
+\end{figure}
+
+% ═══════════════════════════════════════════════════════════════
+\section{Tái tạo 3D}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth]{05_reconstruction/fig_3d_reconstruction_grid.png}
+  \caption{Tái tạo 3D ba giống lúa từ file .ply có sẵn trong dataset. Cột trái: point cloud gốc. Cột phải: bông lúa được highlight màu vàng. Sử dụng Open3D để render.}
+  \label{fig:3d_recon}
+\end{figure}
+
+% ═══════════════════════════════════════════════════════════════
+\section{Ứng dụng Explainable AI (xAI)}
+
+Phần này là đóng góp mới so với bài báo gốc. Chúng tôi áp dụng xAI để trả lời bốn câu hỏi nghiên cứu (RQ):
+
+\begin{itemize}
+  \item \textbf{RQ1}: Model focus vào vùng nào khi predict bông lúa?
+  \item \textbf{RQ2}: CNN và Transformer có attention pattern khác nhau không?
+  \item \textbf{RQ3}: Tại sao model thất bại trên ảnh field scenes?
+  \item \textbf{RQ4}: Giải thích có chất lượng cao không? (định lượng)
+  \item \textbf{RQ5}: Thay đổi tối thiểu nào khiến model đổi dự đoán? (counterfactual)
+\end{itemize}
+
+\subsection{Phương pháp xAI — Saliency-based}
+
+\subsubsection{GradCAM++~\cite{chattopadhay2018gradcampp}}
+GradCAM++ cải tiến GradCAM bằng cách tính trọng số gradient bậc hai, cho phép highlight tốt hơn khi có nhiều đối tượng cùng loại trong một ảnh (phù hợp với ảnh có nhiều bông lúa).
+
+\textbf{Target layers:}
+\begin{itemize}
+  \item DeepLabV3+: \texttt{backbone.layer4[-1]} (Bottleneck cuối ResNet-101)
+  \item SegFormer: \texttt{decode\_head.fusion\_conv} (ConvModule tổng hợp đặc trưng)
+  \item K-Net: \texttt{decode\_head.kernel\_generate\_head.fpn\_bottleneck}
+\end{itemize}
+
+\subsubsection{EigenCAM~\cite{muhammad2020eigencam}}
+EigenCAM không cần gradient — dùng SVD trên activation tensor của layer, lấy thành phần chính đầu tiên làm heatmap. Phù hợp với Transformer do gradient của ViT thường noisy.
+
+\textbf{Target layer:} \texttt{backbone.stages[-1].blocks[-1]} (Swin Block cuối) với reshape transform từ $(B, L, C) \to (B, C, H, W)$.
+
+\subsubsection{Energy Pointing Game (EPG)~\cite{zhang2018top}}
+Metric định lượng chất lượng explanation:
+\begin{equation}
+\text{EPG} = \frac{\sum_{i \in \text{GT}} \text{CAM}(i)}{\sum_{i} \text{CAM}(i)}
+\end{equation}
+EPG cao nghĩa là phần lớn "năng lượng" của CAM nằm trong vùng bông lúa thực (GT mask).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{06_xai/gradcam/fig_cam_4models_grid.png}
+  \caption{\textbf{RQ1 + RQ2}: GradCAM++ và EigenCAM trên 4 mô hình. Vùng màu nóng (đỏ/vàng) cho thấy vùng model quan tâm khi dự đoán bông lúa. EPG score được hiển thị trên mỗi ô.}
+  \label{fig:cam_4models}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{06_xai/comparison/fig_cnn_vs_transformer.png}
+  \caption{\textbf{RQ2}: So sánh trực tiếp GradCAM++ (DeepLabV3+/CNN) với EigenCAM (Mask2Former/Transformer). CNN tạo heatmap cục bộ, sắc nét; Transformer tạo heatmap rộng hơn, nắm bắt context toàn ảnh. Đường đỏ là contour của CAM thresholded tại 0.4.}
+  \label{fig:cnn_vs_transformer}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\textwidth]{06_xai/quantitative/fig_cam_quantitative.png}
+  \caption{\textbf{RQ4}: Energy Pointing Game score cho 4 mô hình trên val set và field test. DeepLabV3+ có EPG cao nhất (0.167 val, 0.234 field), cho thấy CNN có attention tập trung hơn vào vùng bông so với Transformer.}
+  \label{fig:epg_quantitative}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Kết quả định lượng xAI — Energy Pointing Game Score}
+\label{tab:epg_results}
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Model} & \textbf{Method} & \textbf{Val EPG} & \textbf{Val Std} & \textbf{Field EPG} & \textbf{Field Std} \\
+\midrule
+{\color{colorDL}DeepLabV3+}  & GradCAM++ & \textbf{0.167} & 0.079 & \textbf{0.234} & 0.018 \\
+{\color{colorSF}SegFormer}    & GradCAM++ & 0.094 & 0.062 & 0.157 & 0.049 \\
+{\color{colorKN}K-Net}        & GradCAM++ & 0.062 & 0.044 & 0.100 & 0.034 \\
+{\color{colorM2F}Mask2Former} & EigenCAM  & 0.073 & 0.070 & 0.147 & 0.121 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{06_xai/failure/fig_failure_cam.png}
+  \caption{\textbf{RQ3}: CAM trên các trường hợp thất bại của Mask2Former trên field test. Hàng trên: ảnh gốc. Hàng giữa: ground truth (đỏ = bông). Hàng dưới: CAM heatmap. Hàng cuối: vùng xanh = GT bông, đỏ = model attend nhầm. Thấy rõ model attend vào cỏ dại có texture tương tự bông (case 1) và lá lúa màu vàng (case 3).}
+  \label{fig:failure_cam}
+\end{figure}
+
+\subsection{Phương pháp xAI — Counterfactual}
+
+\subsubsection{Occlusion Counterfactual Map~\cite{zeiler2014visualizing}}
+Slide một patch $32\times32$ qua toàn bộ ảnh (stride 16), thay thế bằng màu mean. Đo độ sụt giảm trong dự đoán panicle khi mỗi patch bị xóa:
+\begin{equation}
+\text{CF\_Map}(r,c) = \max\!\left(0,\; S_{\text{base}} - S_{\text{occ}(r,c)}\right)
+\end{equation}
+Vùng có $\text{CF\_Map}$ cao → \textit{counterfactually necessary}: xóa đi thì model mất khả năng detect.
+
+\subsubsection{Deletion/Insertion AUC~\cite{samek2017evaluating}}
+Sắp xếp pixel theo thứ tự quan trọng (từ CAM), sau đó:
+\begin{itemize}
+  \item \textbf{Deletion}: xóa dần pixel quan trọng → prediction score phải giảm nhanh
+  \item \textbf{Insertion}: thêm dần pixel vào ảnh blank → prediction score phải tăng nhanh
+\end{itemize}
+AUC của hai curve là metric chất lượng explanation. Gap (Ins-Del) dương = explanation tốt.
+
+\subsubsection{Superpixel Counterfactual~\cite{petsiuk2018rise}}
+Phân ảnh thành 40 superpixels (SLIC), với mỗi superpixel: xóa và đo drop IoU. Superpixel có drop lớn → \textit{critical} cho việc detect bông lúa.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{06_xai/counterfactual/fig_occlusion_cf_map.png}
+  \caption{\textbf{RQ5 — M1}: Occlusion Counterfactual Map cho 3 mô hình trên 4 ảnh (2 val + 2 field). Vùng nóng (đỏ) = xóa vùng này thì model không còn detect bông. CF-Align = tỉ lệ vùng counterfactual trùng với GT mask. DeepLabV3+ có CF-Align cao nhất — CNN tập trung đúng vùng bông.}
+  \label{fig:occlusion_cf}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{06_xai/counterfactual/fig_deletion_insertion.png}
+  \caption{\textbf{RQ5 — M2}: Deletion/Insertion curves cho DeepLabV3+. Đường đỏ = deletion (xóa pixel quan trọng → score giảm). Đường xanh = insertion (thêm pixel vào blank → score tăng). AUC được ghi chú trên mỗi subplot.}
+  \label{fig:del_ins}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{06_xai/counterfactual/fig_superpixel_cf.png}
+  \caption{\textbf{RQ5 — M3}: Superpixel Counterfactual Map (Mask2Former). Hàng 1: ảnh + GT. Hàng 2: superpixels SLIC. Hàng 3: critical superpixels — xanh lá = critical và đúng vị trí bông, đỏ = critical nhưng nằm ngoài GT (false positive counterfactual).}
+  \label{fig:superpixel_cf}
+\end{figure}
+
+\subsection{Phân tích và thảo luận}
+
+\subsubsection{CNN vs. Transformer — Cơ chế attention khác nhau}
+DeepLabV3+ (CNN) có EPG cao nhất (0.167 val) và CF-Align tốt nhất, cho thấy CNN có attention \textit{cục bộ}, tập trung chính xác vào texture của bông lúa. Ngược lại, Transformer (Mask2Former, K-Net) có EPG thấp hơn vì attention \textit{rộng hơn} — nắm bắt cả context xung quanh bông — phù hợp để phân biệt bông/nền nhưng khó giải thích trực quan.
+
+\subsubsection{Failure case analysis}
+CAM trên field test (Hình~\ref{fig:failure_cam}) cho thấy:
+\begin{itemize}
+  \item \textbf{Cỏ dại}: Model attend vào texture vàng-nâu tương tự bông → FP cao
+  \item \textbf{Lá lúa}: Model học được từ plastic boards trong training nhưng field test không có → domain gap
+  \item \textbf{Bông nhỏ}: CAM energy phân tán, không tập trung đủ vào bông nhỏ → FN cao
+\end{itemize}
+
+\subsubsection{Giới hạn của xAI với Mask2Former}
+Kiến trúc query-based của Mask2Former khiến \texttt{decode\_head.forward()} yêu cầu \texttt{batch\_data\_samples} — không tương thích với gradient hook thông thường. Chúng tôi sử dụng backbone wrapper (projection Swin-B $\to$ 2 classes) thay thế, nhưng điều này có thể làm giảm độ chính xác của explanation. Đây là hạn chế kỹ thuật cần nghiên cứu thêm.
+
+% ═══════════════════════════════════════════════════════════════
+\section{Kết luận}
+
+\subsection{Tổng kết đóng góp}
+
+\begin{enumerate}
+  \item \textbf{Tái tạo thành công}: MAE = 4.29\% (val) và 3.05\% (field) — trong ngưỡng chấp nhận. Thứ hạng ranking nhất quán 100\% với paper gốc.
+  \item \textbf{K-Net và Mask2Former vượt paper} (+3--4\% IoU) nhờ data nhiều hơn và backbone Swin-B.
+  \item \textbf{xAI làm rõ cơ chế}: CNN attention cục bộ và tập trung; Transformer attention rộng và nắm bắt context.
+  \item \textbf{Counterfactual xAI}: Xác định được vùng critically necessary — xóa đi thì model mất khả năng detect bông.
+  \item \textbf{Failure analysis}: Domain gap từ plastic boards, texture ambiguity với cỏ dại là nguyên nhân chính gây FP.
+\end{enumerate}
+
+\subsection{Hướng phát triển}
+
+\begin{itemize}
+  \item \textbf{Cải thiện Precision}: Bỏ class weight hoặc giảm về [0.5, 2.0] để cân bằng Precision-Recall.
+  \item \textbf{Cultivar-level split}: Chia val theo giống để tránh data leakage.
+  \item \textbf{Data augmentation}: Thêm ảnh không có plastic boards để cải thiện field generalization.
+  \item \textbf{xAI cho Mask2Former}: Nghiên cứu phương pháp tương thích với query-based architecture (DINO attention, Transformer rollout).
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════════════
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+\end{document}

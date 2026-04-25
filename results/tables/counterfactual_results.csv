@@ -1,0 +1,2 @@
+Model,Method,Del AUC (mean),Ins AUC (mean),Del-Ins Gap,Interpretation
+DeepLabV3+,GradCAM++/EigenCAM,45.37,43.59,-1.77,Poor

@@ -1,0 +1,5 @@
+Model,Method,Val EPG (mean),Val EPG (std),Field EPG (mean),Field EPG (std)
+DeepLabV3+,GradCAM++,0.167,0.079,0.234,0.018
+SegFormer,GradCAM++,0.094,0.062,0.157,0.049
+K-Net,GradCAM++,0.062,0.044,0.100,0.034
+Mask2Former,EigenCAM,0.073,0.070,0.147,0.121

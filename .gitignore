@@ -1,0 +1,38 @@
+# Data and checkpoints (large files)
+data/
+checkpoints/
+CVRP_Rice/
+
+# Experiments (trained models and work dirs)
+experiments/
+
+# Large library (clone from https://github.com/open-mmlab/mmsegmentation.git)
+mmsegmentation/
+
+# Logs
+*.log
+
+# LaTeX auxiliary files
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.swp

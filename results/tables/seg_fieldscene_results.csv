@@ -1,0 +1,5 @@
+Model,panicle_IoU,panicle_Acc,mIoU,Paper_IoU,IoU_diff
+DeepLabV3+,63.46,93.94,77.03,62.82,+0.64
+SegFormer,63.12,95.21,76.72,68.24,-5.12
+K-Net,69.23,78.81,81.65,67.34,+1.89
+Mask2Former,72.00,82.53,83.27,76.56,-4.56

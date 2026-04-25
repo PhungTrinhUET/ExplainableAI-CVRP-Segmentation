@@ -1,0 +1,664 @@
+\documentclass[12pt, a4paper]{article}
+
+% --- Packages ---
+% For xelatex/lualatex with Vietnamese support
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{vietnamese}
+\setmainfont{DejaVu Serif}[
+  BoldFont = DejaVu Serif Bold,
+  ItalicFont = DejaVu Serif Italic,
+  BoldItalicFont = DejaVu Serif Bold Italic
+]
+\setsansfont{DejaVu Sans}
+\setmonofont{DejaVu Sans Mono}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{authblk}
+\usepackage{abstract}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{microtype}
+
+\geometry{
+  top=2.5cm, bottom=2.5cm,
+  left=2.5cm, right=2.5cm
+}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue
+}
+
+\setlength{\headheight}{14pt}
+\addtolength{\topmargin}{-2pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\small Z. Tang và cộng sự \quad \textit{Plant Phenomics} 7 (2025) 100025}
+\rfoot{\thepage}
+
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries\itshape}{\thesubsection.}{0.5em}{}
+
+\onehalfspacing
+
+% ===================================================================
+\begin{document}
+
+% --- Tiêu đề ---
+\begin{center}
+  {\small \textit{Bài báo dữ liệu}}\\[6pt]
+  {\LARGE \textbf{CVRP: Bộ dữ liệu hình ảnh lúa với chú thích chất lượng cao\\
+  phục vụ phân đoạn ảnh và nghiên cứu kiểu hình thực vật}}\\[10pt]
+  {\normalsize
+    Zhiyan Tang$^{a,1}$, Jiandong Sun$^{a,1}$, Yunlu Tian$^{a,1}$,
+    Jiexiong Xu$^{a}$, Weikun Zhao$^{a}$, Gang Jiang$^{a}$,
+    Jiaqi Deng$^{a}$, Xiangchao Gan$^{a,b,*}$
+  }\\[6pt]
+  {\small
+    $^{a}$Phòng thí nghiệm trọng điểm quốc gia về Di truyền, Tài nguyên và Cải tiến cây trồng,
+    Đại học Nông nghiệp Nam Kinh, Nam Kinh 210095, Trung Quốc\\
+    $^{b}$Phòng thí nghiệm Nhân giống sinh học Trung Sơn, Nam Kinh 210095, Trung Quốc\\[4pt]
+    $^{1}$Các tác giả đóng góp ngang nhau.\\
+    $^{*}$Tác giả liên hệ: \href{mailto:gan@njau.edu.cn}{gan@njau.edu.cn}
+  }
+\end{center}
+
+\vspace{0.5cm}
+\noindent\rule{\linewidth}{0.4pt}
+
+% --- Thông tin bài báo & Tóm tắt ---
+\noindent
+\begin{minipage}[t]{0.28\linewidth}
+  \small
+  \textbf{Từ khóa:}\\
+  Chú thích ảnh\\
+  Bông lúa\\
+  Phân đoạn ảnh\\
+  Học sâu\\
+  Kiểu hình thực vật
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.69\linewidth}
+  \small
+  \textbf{Tóm tắt}\\
+  Các mô hình học máy phục vụ phân tích ảnh cây trồng và nghiên cứu kiểu hình có tầm quan
+  trọng cao đối với nông nghiệp chính xác và công tác chọn giống, đồng thời là chủ đề được
+  nghiên cứu chuyên sâu. Tuy nhiên, sự thiếu hụt các bộ dữ liệu hình ảnh chất lượng cao có
+  chú thích chi tiết và được công bố công khai đã cản trở nghiêm trọng sự phát triển của các
+  mô hình này. Trong công trình này, chúng tôi giới thiệu một bộ dữ liệu hình ảnh cây lúa đa
+  giống và đa góc nhìn (CVRP) được tạo ra từ 231 giống địa phương và 50 giống hiện đại được
+  trồng theo mật độ dày trên ruộng lúa nước. Bộ dữ liệu bao gồm ảnh chụp cây lúa trong môi
+  trường tự nhiên ngoài đồng, cũng như ảnh trong phòng tập trung vào bông lúa, cho phép điều
+  tra chi tiết các đặc điểm đặc trưng của từng giống. Quy trình chú thích bán tự động sử dụng
+  mô hình học sâu đã được thiết kế để chú thích, sau đó được kiểm tra thủ công chặt chẽ.
+  Chúng tôi chứng minh tính hữu ích của CVRP bằng cách đánh giá hiệu suất của bốn mô hình
+  phân đoạn ngữ nghĩa tiên tiến nhất (SOTA). Chúng tôi cũng thực hiện tái tạo 3D cây trồng
+  với phân đoạn bộ phận thông qua ảnh và chú thích. Cơ sở dữ liệu không chỉ hỗ trợ nhận
+  diện và phân đoạn bông lúa theo mục đích chung mà còn cung cấp tài nguyên quý giá cho các
+  nhiệm vụ khó khăn như nhận diện tự động giống lúa, đếm bông và hạt lúa, và tái tạo 3D cây
+  trồng. Cơ sở dữ liệu và mô hình chú thích ảnh có tại
+  \href{https://bic.njau.edu.cn/CVRP.html}{https://bic.njau.edu.cn/CVRP.html}.
+\end{minipage}
+
+\noindent\rule{\linewidth}{0.4pt}
+\vspace{0.3cm}
+
+% ===================================================================
+\section{Giới thiệu}
+
+Là một loại lương thực chủ yếu, lúa là nguồn dinh dưỡng quan trọng cho hơn nửa dân số thế
+giới. Đặc điểm kiểu hình của bông lúa là một chỉ số quan trọng phản ánh sự sinh trưởng và
+năng suất~\cite{chandra2020}, khiến nó trở nên hữu ích cao trong canh tác và chọn giống lúa.
+Tuy nhiên, các phương pháp thu thập dữ liệu truyền thống vẫn phụ thuộc nhiều vào quan sát và
+đo đạc thủ công. Kiểu hình thực vật học, tận dụng học máy và thị giác máy tính, đang được
+ứng dụng ngày càng nhiều và đang trở thành động lực thúc đẩy nghiên cứu nông nghiệp chính
+xác và chọn giống.
+
+Các nhà nghiên cứu thường trích xuất các đặc điểm kiểu hình hoặc thống kê bằng cách áp dụng
+học sâu vào ảnh, giúp giảm đáng kể chi phí thời gian và lao động~\cite{xiong2017}.
+
+Trong những năm gần đây, nhiều phương pháp tiên tiến đã được áp dụng để nâng cao độ chính
+xác và hiệu quả trong nghiên cứu kiểu hình lúa, với trọng tâm là các kỹ thuật phân đoạn
+bông lúa. Chẳng hạn, xác định giai đoạn trỗ bông của lúa không chỉ quan trọng để cải thiện
+tỷ lệ đậu hạt và đảm bảo năng suất cao mà còn hữu ích cho các mô hình sinh trưởng lúa. Bai
+và cộng sự~\cite{bai2018} đã giải quyết thách thức tự động nhận diện giai đoạn trỗ bông bằng
+cách chuyển đổi vấn đề thành phát hiện từng bông lúa riêng lẻ. Để mô tả chính xác và toàn
+diện các đặc điểm của bông lúa trong ảnh, các nhà nghiên cứu đã sử dụng cả đặc trưng thị
+giác truyền thống như màu sắc và gradient, lẫn đặc trưng học được thông qua mạng nơ-ron tích
+chập (CNN). Hayat và cộng sự~\cite{hayat2020} đề xuất phương pháp học Bayesian không giám sát
+để phân đoạn bông lúa trong ảnh UAV. Mô hình hỗn hợp Gaussian và phương pháp Monte Carlo theo
+chuỗi Markov (MCMC) được phát triển để phát hiện pixel bông lúa mà không cần dữ liệu huấn
+luyện có nhãn. Xiao và cộng sự~\cite{xiao2023} giới thiệu phương pháp kết hợp đặc trưng
+skip-connection có trọng số (WSFF) và tích hợp vào mô hình UNet để tạo ra weighted
+skip-connection UNet (WSUNet), nhằm cải thiện phân đoạn bông lúa từ UAV mà không tăng chi
+phí tính toán.
+
+Hầu hết các phương pháp nhận diện và phân đoạn bông lúa đều sử dụng các mô hình dựa trên
+học sâu, đòi hỏi nhiều ảnh có chú thích chất lượng cao để huấn luyện. Bông lúa trong ảnh có
+sự khác biệt đáng kể về màu sắc, kết cấu, kích thước và hình dạng do các yếu tố môi trường
+đồng ruộng cực kỳ phức tạp, bao gồm phản chiếu ánh sáng từ nước, mất cân bằng ánh sáng do
+thời tiết và nền ảnh lộn xộn~\cite{xiong2017}. Tệ hơn nữa, có nhiều thiết bị kiểu hình khác
+nhau và dữ liệu ảnh thu thập thường bị giới hạn cho các mục đích cụ thể. Trong Zhou và cộng
+sự~\cite{zhou2023}, thiết bị thu thập ảnh được gắn trên giá cố định và máy ảnh chụp thẳng
+đứng xuống ở góc 90 độ. Wang và cộng sự~\cite{wang2021} sử dụng UAV để chụp ảnh ruộng lúa,
+nhưng độ rõ nét của các ảnh này thấp. Ảnh thông lượng cao bị giới hạn ở góc nhìn tán lá từ
+góc thẳng đứng hoặc chếch. Mặc dù chụp ảnh từ góc chếch có thể thu được nhiều bông và đặc
+trưng phong phú hơn so với góc thẳng đứng, nhưng không thể chụp được tất cả bông của cây
+trồng dày từ một góc nhìn cố định do bị che khuất. Hơn nữa, sự biến đổi đáng kể của điều
+kiện đồng ruộng như ánh sáng, che khuất và sự hiện diện của cỏ dại ảnh hưởng đến chất lượng
+ảnh thu được và độ chính xác của phân tích kiểu hình tiếp theo.
+
+Sự thiếu hụt các bộ dữ liệu hình ảnh chất lượng cao có chú thích chi tiết và được công bố
+công khai đã cản trọng nghiêm trọng việc áp dụng các thuật toán thị giác máy tính SOTA trong
+kiểu hình thực vật và phát triển phương pháp kiểu hình thực vật. Trong những năm gần đây,
+nhiều nghiên cứu đã thu thập bộ dữ liệu ảnh để nghiên cứu các yếu tố nông học ảnh hưởng đến
+năng suất cây trồng, nhưng khi sử dụng để huấn luyện mô hình học sâu, chú thích là bắt buộc
+và thường tốn kém. Bộ dữ liệu phát hiện đầu lúa mì toàn cầu (GWHD)~\cite{david2020,
+david2021} được xây dựng và mở rộng như một bộ dữ liệu phát hiện đầu lúa mì đa dạng và chất
+lượng cao. Bộ dữ liệu MinneApple~\cite{hani2020} được tạo ra như một bộ dữ liệu chuẩn để
+phát hiện và phân đoạn táo. Wang và cộng sự~\cite{wang2021} xây dựng bộ dữ liệu ảnh lúa
+nước, giới thiệu quy trình huấn luyện mô hình học sâu bán giám sát để hỗ trợ chú thích và
+tinh chỉnh bộ dữ liệu. Tuy nhiên, trong nghiên cứu này chỉ có hai giống lúa được thu thập từ
+ruộng thực nghiệm và sự đa dạng về diện mạo bông lúa giữa các giống khác nhau bị bỏ qua.
+Vẫn còn thiếu các bộ dữ liệu công khai toàn diện để huấn luyện và đánh giá mô hình. Do đó,
+một số phương pháp học sâu phân đoạn bông lúa chỉ được xác nhận trên bộ dữ liệu hạn chế.
+Chẳng hạn, Xiong và cộng sự~\cite{xiong2017} chỉ kiểm tra 48 mẫu với độ chính xác phân đoạn
+bông khoảng 80\%.
+
+Trong bài báo này, chúng tôi xây dựng bộ dữ liệu hình ảnh cây lúa đa giống và đa góc nhìn
+(CVRP). Vì đặc điểm kiểu hình của bông lúa chịu ảnh hưởng của thông tin di truyền và điều
+kiện môi trường, ảnh của 231 giống địa phương và 50 giống hiện đại được chụp độc lập trên
+ruộng lúa nước. CVRP bao gồm 2.303 ảnh đồng ruộng với mặt nạ chú thích tương ứng và 123
+ảnh bông lúa trong phòng. Ban đầu chúng tôi chú thích một phần ảnh theo cách thủ công và
+huấn luyện mô hình phân đoạn ngữ nghĩa. Sử dụng mô hình đã huấn luyện, chúng tôi gán nhãn
+bông lúa trên các ảnh chưa có nhãn còn lại rồi kiểm tra thủ công các chú thích đó. Quy
+trình này không chỉ nâng cao hiệu quả tạo ra CVRP mà còn cải thiện đáng kể chất lượng của
+nó, biến CVRP trở thành tài nguyên quý giá cho nghiên cứu kiểu hình lúa trong tương lai.
+Hơn nữa, chúng tôi đánh giá hiệu suất của các mô hình phân đoạn ngữ nghĩa SOTA trên bộ dữ
+liệu. Bộ dữ liệu này rất có giá trị để huấn luyện các mô hình trí tuệ nhân tạo (AI) ước
+tính các đặc điểm lúa thông thường, bao gồm mật độ bông và đặc điểm bông. Hơn nữa, vì ảnh
+của mỗi giống lúa được chụp và chú thích độc lập, theo hiểu biết tốt nhất của chúng tôi, đây
+là bộ sưu tập lớn đầu tiên giúp huấn luyện các mô hình AI cho các nhiệm vụ độ phân giải cao
+hơn như nhận diện giống lúa và đếm hạt theo giống.
+
+% ===================================================================
+\section{Vật liệu và phương pháp}
+
+\subsection{Thu thập dữ liệu}
+
+Chúng tôi chụp ảnh cây lúa trên ruộng lúa nước ở Nam Kinh, Trung Quốc, và đưa các bông lúa
+riêng lẻ về phòng thí nghiệm tại Đại học Nông nghiệp Nam Kinh để chụp ảnh trong phòng. Các
+mẫu của chúng tôi bao gồm 231 giống địa phương và 50 giống hiện đại từ ruộng thực nghiệm.
+Tám giống địa phương với đặc điểm bông đặc trưng được thể hiện trong Hình 1. Việc thu thập
+dữ liệu được thực hiện chủ yếu trong giai đoạn chín. Do trồng dày, có sự che khuất đáng kể
+giữa các cây lúa. Để thu được các đặc điểm đặc trưng theo giống của bông lúa và ghi lại đặc
+điểm chi tiết của bông mỗi giống, chúng tôi sử dụng bốn tấm nhựa đặc trưng để tách các cây
+xung quanh trong khi chụp ảnh. Các tấm được vẽ với những hoa văn thị giác phong phú và đặc
+biệt để ngay cả mắt thường cũng có thể nhận ra góc nhìn của ảnh trực tiếp. Đối với một số
+cây, các ảnh chụp đủ các góc nhìn đại diện và cho phép tái tạo toàn bộ cây trong không gian
+3D. Chúng tôi sử dụng kỹ thuật chụp theo vòng xoắn ốc để đảm bảo bao phủ nhiều góc nhìn.
+Kỹ thuật này cho phép chụp được nhiều đặc điểm bông đa dạng như màu sắc, kết cấu và kích
+thước. Để đảm bảo khả năng ứng dụng rộng rãi hơn, chúng tôi cũng chụp nhiều ảnh bông lúa
+trên ruộng lúa dày mà không có nền nhân tạo (sau đây gọi là cảnh đồng ruộng). Một trăm ảnh
+đồng ruộng của các cây ở trạng thái sinh trưởng tự nhiên được thu thập để chú thích.
+
+Ngoài ra, chúng tôi chụp ảnh trong phòng của từng bông lúa riêng lẻ với thông tin cấu trúc
+chi tiết theo hai tư thế. Một bộ ảnh chụp bông trong trạng thái tự nhiên với đế tự chế để
+giữ nguyên tư thế và cấu trúc gốc. Bộ còn lại cho thấy bông ở trạng thái được mở ra bằng
+tay, với các nhánh được sắp xếp để lộ ra các hạt ẩn và cấu trúc bên trong. Để giảm nhiễu từ
+nền lộn xộn, chúng tôi sử dụng nền đen sậm trong quá trình chụp ảnh để làm nổi bật các hạt
+của bông và cải thiện độ chính xác của phân tích ảnh tiếp theo. Mỗi ảnh được chụp trong điều
+kiện ánh sáng được kiểm soát để đảm bảo tính nhất quán và giảm bóng. Những ảnh trong phòng
+này làm phong phú thêm CVRP với các ảnh cận cảnh độ phân giải cao không có nhiễu môi trường.
+
+\subsection{Chuẩn hóa ảnh}
+
+Một nhiệm vụ quan trọng trong việc tạo bộ dữ liệu bông là chuẩn hóa các ảnh đa dạng. Để
+đảm bảo chụp toàn diện các chi tiết của từng cá thể, chúng tôi trước tiên chụp video của
+các cây rồi trích xuất ảnh chất lượng cao. Tám ảnh được chọn cho mỗi cây, ngoại trừ một số
+giống địa phương trong điều kiện sinh trưởng kém. Chúng tôi cố gắng bao gồm các góc nhìn
+thẳng đứng, chếch, ngang và cận cảnh cho mỗi giống. Các ví dụ về ảnh với các góc nhìn khác
+nhau được trình bày trong Hình 3. Góc nhìn thẳng đứng cung cấp góc nhìn từ trên xuống, làm
+nổi bật sự sắp xếp và mật độ của bông, trong khi góc nhìn chếch và ngang cung cấp thông tin
+về đặc điểm cấu trúc và chi tiết kết cấu của bông và cây. Góc nhìn cận cảnh cung cấp thông
+tin chi tiết hơn về một bông lúa riêng lẻ. Ngoài ra, chúng tôi đảm bảo các ảnh được chọn có
+chất lượng cao bằng cách loại bỏ những ảnh bị mờ. Ảnh mờ có thể do máy ảnh di chuyển, lấy
+nét kém hoặc gió làm rung, và chúng có thể ảnh hưởng đến độ chính xác của chú thích và hiệu
+suất của các mô hình phân đoạn. Các ảnh đa giống được chuẩn hóa về độ phân giải $1080 \times
+1920$. Đối với ảnh bông lúa riêng lẻ trong phòng, độ phân giải được đặt ở mức $1500 \times
+2007$.
+
+\subsection{Chú thích ảnh}
+
+Chú thích bộ dữ liệu là một nhiệm vụ tốn thời gian, đặc biệt với dữ liệu bông lúa có cấu
+trúc phức tạp và che khuất không đều. Để tối ưu hóa quy trình chú thích, chúng tôi kết hợp
+các phương pháp học sâu với các phương pháp thủ công và chia quy trình thành hai giai đoạn:
+chú thích thủ công và dự đoán dựa trên mô hình. Quy trình chú thích đầy đủ cho dữ liệu đồng
+ruộng được trình bày trong Hình 5.
+
+Trong giai đoạn đầu, chúng tôi chú thích thủ công 807 ảnh đồng ruộng thông qua công cụ chú
+thích tương tác LabelMe~\cite{russell2008}. Hình đa giác do công cụ này cung cấp đặc biệt
+hiệu quả trong việc mô tả các đường viền phức tạp và tinh tế của bông lúa, đảm bảo chú thích
+chính xác. Quá trình này tốn nhiều thời gian và thực tế mất tổng cộng 352 giờ. Quá trình chú
+thích thủ công chi tiết này tạo nền tảng để huấn luyện mô hình phân đoạn ngữ nghĩa mạnh mẽ.
+
+Trong giai đoạn thứ hai, một mạng nơ-ron sâu được huấn luyện trên dữ liệu đã được chú thích
+thủ công. Chúng tôi sử dụng Mask2Former, vốn sử dụng chú ý che mặt nạ và module trích xuất
+đặc trưng độ phân giải cao để tập trung vào các vùng mục tiêu, cho phép phát hiện và phân
+đoạn chính xác bằng cách nắm bắt các chi tiết tinh tế. Backbone của mô hình là Swin
+Transformer tiên tiến. Bộ tối ưu hóa là AdamW, tăng cường khả năng tổng quát hóa và hiệu
+suất bằng cách tách rời phân rã trọng số khỏi cập nhật gradient. Trong quá trình huấn luyện,
+kích thước batch được đặt là 2, tốc độ học được đặt là 0,0001. Sau đó chúng tôi sử dụng mạng
+nơ-ron đã huấn luyện để nhận diện và phân đoạn bông lúa trên các ảnh chưa được gán nhãn còn
+lại. Các chú thích được dự đoán sau đó được kiểm tra thủ công, và trong thực tế chỉ cần điều
+chỉnh nhỏ. Thời gian xử lý trung bình cho mỗi ảnh khoảng 1 phút.
+
+Bằng cách tích hợp học sâu vào quy trình chú thích, chúng tôi giảm đáng kể cả thời gian lẫn
+chi phí lao động. Phương pháp lai ghép này không chỉ tăng tốc quy trình chú thích mà còn đảm
+bảo chất lượng chú thích cao. Bộ dữ liệu kết quả với các bông lúa được gán nhãn chính xác
+cung cấp dữ liệu chất lượng cao cho việc phát triển và đánh giá mô hình phân đoạn bông lúa.
+Thống kê chi tiết của bộ dữ liệu CVRP được trình bày trong Bảng 1.
+
+% --- Table 1 ---
+\begin{table}[ht]
+  \centering
+  \caption{Thống kê chi tiết của bộ dữ liệu CVRP.}
+  \label{tab:dataset_stats}
+  \begin{tabular}{lccccc}
+    \toprule
+    \textbf{Danh mục} & \multicolumn{2}{c}{\textbf{Dữ liệu đồng ruộng}} & \textbf{Dữ liệu trong phòng} & \textbf{Tổng cộng} \\
+    \cmidrule(lr){2-3}
+    & Đa giống & Cảnh đồng ruộng & & \\
+    \midrule
+    Số ảnh       & 2203 & 100 & 123 & 2426 \\
+    Số chú thích & 2203 & 100 & --  & 2303 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ===================================================================
+\section{Ứng dụng trong nhiệm vụ phân đoạn}
+
+\subsection{Khung triển khai và môi trường hoạt động}
+
+Để phân đoạn ảnh cây lúa, chúng tôi triển khai một số mô hình phân đoạn ngữ nghĩa SOTA thông
+qua framework MMSegmentation v1.2.2~\cite{mmseg2020}, một bộ công cụ phân đoạn ngữ nghĩa mã
+nguồn mở được xây dựng trên PyTorch. Bộ công cụ này cung cấp một hộp công cụ chuẩn thống
+nhất cho nhiều phương pháp phân đoạn ngữ nghĩa khác nhau. Bộ công cụ này mô-đun hóa framework
+phân đoạn ngữ nghĩa thành các thành phần, cho phép người dùng dễ dàng xây dựng framework tùy
+chỉnh bằng cách kết hợp các mô-đun khác nhau. Trong framework MMsegmentation~\cite{mmseg2020},
+MMCV (Nền tảng Thị giác Máy tính OpenMMLab) được sử dụng để xử lý dữ liệu và huấn luyện mô
+hình. Cấu hình của chúng tôi bao gồm GPU A4000, CUDA v11.3 và PyTorch v1.10.0. Chúng tôi
+kiểm tra Mô hình Phân đoạn Bất kỳ (SAM)~\cite{kirillov2023} và Mô hình Phân đoạn Bất kỳ 2
+(SAM2)~\cite{ravi2024} để phân đoạn hạt từ ảnh bông lúa. Hơn nữa, chúng tôi sử dụng framework
+tái tạo mục tiêu 3D và phân đoạn đa cấp một điểm dừng (OSTRA)~\cite{xu2023} để kiểm tra tái
+tạo mục tiêu cây đơn thông qua bộ dữ liệu CVRP.
+
+\subsection{Phân đoạn ngữ nghĩa ảnh cây lúa}
+
+Để đánh giá CVRP trong phân đoạn ngữ nghĩa, chúng tôi triển khai bốn mô hình hiệu suất cao:
+DeepLab Phiên bản 3 Plus (DeepLabV3+)~\cite{chen2018}, masked-attention mask transformer
+(Mask2Former)~\cite{cheng2022}, phân đoạn ngữ nghĩa với transformer (SegFormer)~\cite{xie2021},
+và mạng dựa trên kernel (K-Net)~\cite{zhang2021}. Mỗi mô hình này cung cấp những điểm mạnh
+độc đáo cho việc đánh giá của chúng tôi.
+
+\textbf{DeepLabV3+} sử dụng module gộp kim tự tháp không gian atrous (ASPP) để nắm bắt ngữ
+cảnh đa tỷ lệ dựa trên tích chập atrous, không trích xuất đặc trưng theo từng pixel. Thay
+vào đó, nó tăng trường tiếp nhận, cho phép mỗi đầu ra tích chập nắm bắt phạm vi thông tin
+rộng hơn. Module ASPP hoạt động như một bộ tăng cường đặc trưng bằng cách sử dụng nhiều
+kernel tích chập với các tốc độ giãn khác nhau.
+
+\textbf{Mask2Former}~\cite{cheng2022} được xây dựng trên một meta-framework đơn giản với bộ
+giải mã transformer mới. Thành phần chính của nó là chú ý che mặt nạ, trích xuất đặc trưng
+cục bộ bằng cách giới hạn cross-attention trong vùng mặt nạ được dự đoán. Mask2Former phát
+triển module trích xuất đặc trưng độ phân giải cao để trích xuất đặc trưng độ phân giải cao
+từ bản đồ đặc trưng độ phân giải thấp nhằm nắm bắt các chi tiết của vùng mục tiêu.
+
+\textbf{SegFormer}~\cite{xie2021} kết hợp transformer với bộ giải mã perceptron đa lớp nhẹ;
+bộ mã hóa của nó không cần nội suy mã hóa vị trí khi xử lý ảnh với các độ phân giải huấn
+luyện khác nhau, cho phép dễ dàng thích ứng với các độ phân giải kiểm tra tùy ý mà không ảnh
+hưởng đến hiệu suất. Cấu trúc phân cấp có thể tạo ra đặc trưng chi tiết ở độ phân giải cao
+và đặc trưng thô ở độ phân giải thấp.
+
+\textbf{K-Net}~\cite{zhang2021} là một kiến trúc sáng tạo cho phân đoạn ảnh giới thiệu tạo
+kernel động để nắm bắt đặc trưng của các đối tượng khác nhau. Bằng cách sử dụng trích xuất
+đặc trưng đa tỷ lệ, K-Net tích hợp đặc trưng từ nhiều cấp độ khác nhau, nâng cao hiệu suất
+cho các đối tượng đa tỷ lệ trong các cảnh phức tạp.
+
+Trong framework MMsegmentation~\cite{mmseg2020}, các backbone sử dụng khác nhau giữa các
+mạng: DeepLabV3+ được xây dựng trên mạng nơ-ron tàn dư (ResNet), SegFormer được xây dựng
+trên Mix Vision Transformer, và cả Mask2Former lẫn K-Net đều được xây dựng trên Swin
+Transformer.
+
+Chúng tôi áp dụng các mô hình phân đoạn trên vào CVRP, sử dụng 727 ảnh làm tập huấn luyện
+và 80 ảnh làm tập xác nhận, để đánh giá hiệu suất theo một số chuẩn mực tiêu chuẩn. Các
+metric tiêu chuẩn bao gồm precision, recall, F score và intersection over union (IoU). Các
+metric này dựa trên bốn đại lượng cơ bản: true positives (TP), true negatives (TN), false
+positives (FP) và false negatives (FN). Trong công trình của chúng tôi, TP đại diện cho các
+pixel bông được phân loại đúng là bông, TN đại diện cho các pixel nền được phân loại đúng là
+nền, FP đại diện cho các pixel nền bị phân loại sai là bông, và FN đại diện cho các pixel
+bông bị phân loại sai là nền.
+
+Precision tính tỷ lệ dự đoán đúng dương trên tổng số dự đoán dương của mô hình, phản ánh độ
+chính xác của phân đoạn bông:
+\begin{equation}
+  \text{Precision} = \frac{TP}{TP + FP}
+\end{equation}
+
+Recall đo tỷ lệ dự đoán đúng dương trên tổng số dương thực tế. Trong công trình của chúng
+tôi, nó chỉ ra khả năng của mô hình trong việc nắm bắt tất cả bông liên quan:
+\begin{equation}
+  \text{Recall} = \frac{TP}{TP + FN}
+\end{equation}
+
+F score là trung bình điều hòa của precision và recall, cung cấp một thước đo cân bằng xem
+xét cả false positives và false negatives:
+\begin{equation}
+  \text{F score} = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}
+\end{equation}
+
+IoU đặc biệt quan trọng trong việc đánh giá các mô hình phân đoạn vì nó định lượng sự chồng
+lấp giữa phân đoạn được dự đoán và ground truth. Giá trị IoU cao hơn biểu thị hiệu suất mô
+hình tốt hơn:
+\begin{equation}
+  \text{IoU} = \frac{TP}{TP + FP + FN}
+\end{equation}
+
+Các metric này rất quan trọng để đo lường hiệu quả của các mô hình học máy trong việc nhận
+diện và phân đoạn các đối tượng trong ảnh. Vì chúng tôi đánh giá hiệu suất phân đoạn của mô
+hình trên CVRP, chúng tôi chỉ tập trung vào việc phân biệt bông lúa với các danh mục khác.
+Vì nền chiếm tỷ lệ lớn trong ảnh, chúng tôi đánh giá các metric hiệu suất riêng cho danh mục
+bông mà không lấy trung bình với danh mục nền.
+
+Kết quả của chúng tôi được trình bày trong Bảng 2. Hiệu suất của bốn mô hình phân đoạn tương
+đối có thể so sánh được với nhau. Recall nhìn chung trên 85\%, cho thấy tất cả các mô hình
+đều có thể nhận diện chính xác phần lớn bông lúa. IoU cho thấy Mask2Former có hiệu suất tốt
+nhất trong phân đoạn bông.
+
+% --- Table 2 ---
+\begin{table}[ht]
+  \centering
+  \caption{Các metric hiệu suất của bốn mô hình phân đoạn SOTA trên dữ liệu đa giống.}
+  \label{tab:seg_results}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Mô hình phân đoạn} & \textbf{Precision $\uparrow$} & \textbf{Recall $\uparrow$} & \textbf{F score $\uparrow$} & \textbf{IoU $\uparrow$} \\
+    \midrule
+    DeepLabV3+ & 79.83 & 86.55 & 83.05 & 71.02 \\
+    Mask2Former & 81.12 & \textbf{88.49} & \textbf{84.64} & \textbf{73.38} \\
+    SegFormer   & 78.76 & 88.11 & 83.17 & 71.19 \\
+    K-Net       & \textbf{82.37} & 85.85 & 84.08 & 72.53 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Chúng tôi cũng đánh giá các mô hình đã huấn luyện trên ảnh cảnh đồng ruộng để đánh giá khả
+năng tổng quát hóa. Kết quả được trình bày trong Bảng 3. Kết quả precision và recall cho thấy
+mô hình đã huấn luyện Mask2Former nhận diện hiệu quả phần lớn bông lúa với mức độ chính xác
+thỏa đáng. Đáng chú ý, một số tình huống cụ thể gây ra thách thức cho mô hình của chúng tôi.
+Lá lúa và cỏ dại đôi khi bị nhầm lẫn là bông lúa ở cả hai giai đoạn sinh trưởng. Màu sắc
+tương tự của lá lúa, cỏ dại và bông lúa có thể tạo ra các tín hiệu thị giác gây nhầm lẫn
+cho phân đoạn, dẫn đến bỏ sót nhãn bông hoặc phân loại sai cỏ dại là bông. Hơn nữa, phân
+đoạn các bông lúa nhỏ chiếm phần nhỏ trong ảnh rất khó khăn.
+
+% --- Table 3 ---
+\begin{table}[ht]
+  \centering
+  \caption{Các metric hiệu suất của bốn mô hình phân đoạn SOTA trên dữ liệu cảnh đồng ruộng.}
+  \label{tab:field_results}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Mô hình phân đoạn} & \textbf{Precision $\uparrow$} & \textbf{Recall $\uparrow$} & \textbf{F score $\uparrow$} & \textbf{IoU $\uparrow$} \\
+    \midrule
+    DeepLabV3+ & 82.73 & 74.18 & 76.89 & 62.82 \\
+    Mask2Former & \textbf{89.39} & \textbf{84.60} & \textbf{86.49} & \textbf{76.56} \\
+    SegFormer   & 79.28 & 84.08 & 80.91 & 68.24 \\
+    K-Net       & 85.52 & 77.50 & 80.13 & 67.34 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Phân đoạn bông lúa đơn}
+
+Đếm số lượng hạt trên mỗi bông lúa thông qua phân tích ảnh và kỹ thuật học sâu vẫn là một
+nhiệm vụ đầy thách thức, với nhiều phương pháp vẫn đang được phát triển. Chúng tôi kiểm tra
+Mô hình Phân đoạn Bất kỳ (SAM)~\cite{kirillov2023} và Mô hình Phân đoạn Bất kỳ 2
+(SAM2)~\cite{ravi2024} để phân đoạn ảnh trong phòng của các bông lúa riêng lẻ. Chúng tôi
+chọn dòng mô hình SAM vì phạm vi ứng dụng rộng và không yêu cầu chú thích dữ liệu phức tạp.
+Kết quả phân đoạn bởi các mô hình SAM cho thấy, tính trung bình, 83\% hạt lúa trong các bông
+được mở ra bằng tay có thể được nhận diện, trong khi chỉ 73\% hạt trong trạng thái treo tự
+nhiên có thể được phân đoạn chính xác. Do sự che khuất và chồng lấp giữa các hạt, đặc biệt
+ở trạng thái treo tự nhiên, rất khó nhận diện và tách biệt chúng để đếm. Đối với các mô hình
+hiện tại, tốt hơn nên mở ra bông lúa bằng tay. Bằng cách cung cấp nhiều ảnh bông lúa ở cả
+trạng thái tự nhiên và trạng thái mở ra, cơ sở dữ liệu của chúng tôi cho phép phát triển
+chuyên sâu hơn các mô hình AI cho nhiệm vụ kiểu hình thực vật quan trọng nhưng đầy thách
+thức này.
+
+\subsection{Tái tạo 3D cây lúa với phân đoạn bông}
+
+Chúng tôi tiếp tục thực hiện tái tạo 3D để chứng minh phạm vi ứng dụng rộng của bộ dữ liệu
+và chất lượng cao của các chú thích. Chuỗi ảnh của một cây đơn và các chú thích phân đoạn
+của chúng được chọn. Sau đó chúng tôi sử dụng OSTRA~\cite{xu2023}, một framework mã nguồn
+mở cho tái tạo mục tiêu 3D và phân đoạn đa cấp, để tái tạo cây với bông được gán nhãn thông
+qua các phương pháp stereo đa góc nhìn (MVS). Bằng cách kết hợp chuỗi ảnh và mặt nạ phân
+đoạn của chúng, OSTRA thực hiện ước tính tư thế máy ảnh, ước tính độ sâu và ước tính vector
+hướng, và tái tạo hoàn toàn cây 3D. Bốn tấm nhựa trong nền rất hữu ích cho việc khớp đặc
+trưng và ước tính vị trí. Chúng tôi đã hoàn thành tái tạo 3D cây cho ba giống lúa khác nhau
+thông qua ảnh và chú thích của chúng.
+
+% ===================================================================
+\section{Thảo luận}
+
+Trong bài báo này, chúng tôi giới thiệu CVRP, một bộ dữ liệu hình ảnh cây lúa đa giống và
+đa góc nhìn. CVRP bao gồm 2.303 ảnh đồng ruộng của toàn bộ cây và 123 ảnh bông lúa trong
+phòng. Để ghi lại các đặc điểm chi tiết của cây lúa và bông lúa nhằm quan sát sự khác biệt
+đặc trưng theo giống, các cây được tách khỏi cây xung quanh và nền đồng trong quá trình chụp
+ảnh. Do đó, CVRP không chỉ phục vụ cho mục đích nhận diện và phân đoạn bông dựa trên ảnh
+thông thường mà còn cung cấp tài nguyên quý giá cho các nhiệm vụ đầy thách thức như nhận diện
+giống lúa thông lượng cao, đếm bông và đếm hạt. Ngoài ra, bộ dữ liệu có thể được sử dụng cho
+các nghiên cứu mô hình 3D cây trồng.
+
+Nhiều yếu tố có thể ảnh hưởng đến chất lượng ảnh bông lúa trên đồng ruộng. Bông lúa trải qua
+ba giai đoạn sinh trưởng riêng biệt: giai đoạn trỗ bông, giai đoạn nở hoa và giai đoạn chín.
+Trong các giai đoạn khác nhau, cây lúa có thể biểu hiện sự khác biệt kiểu hình đáng kể. Một
+số giống địa phương thậm chí bị ảnh hưởng nghiêm trọng bởi hiện tượng đổ ngã. Các bông có
+thể bị lá che khuất nhiều hơn sau khi hạt chắc vì trọng lượng tăng của bông làm thay đổi
+hình dạng cây. Đối với thu thập dữ liệu đồng ruộng về bông lúa, giai đoạn nở hoa, khi tất
+cả bông đã trỗ, được khuyến nghị cao. Điều này đảm bảo tính toàn vẹn của đặc điểm bông và
+giảm tác động tiêu cực của hiện tượng đổ ngã đến thu thập dữ liệu. Đối với thu thập dữ liệu
+đồng ruộng, lựa chọn góc nhìn phụ thuộc vào đặc điểm bông được điều tra. Góc nhìn thẳng đứng
+phù hợp nhất để ghi lại mật độ bông. Tuy nhiên, nếu tập trung vào từng cây riêng lẻ, góc
+nhìn chếch phù hợp hơn vì nó ghi lại cả số lượng bông lẫn các đặc điểm chi tiết như hình
+dạng và kết cấu. Góc nhìn cận cảnh cũng có giá trị để cung cấp các đặc điểm chi tiết của
+từng bông riêng lẻ. Nếu không sử dụng thu thập dữ liệu thông lượng cao, chúng tôi khuyến
+nghị sử dụng độ phân giải $1080 \times 1920$, đủ cho hầu hết các nghiên cứu.
+
+Để đơn giản hóa quy trình chú thích bông lúa, chúng tôi đã áp dụng quy trình hai giai đoạn
+kết hợp nỗ lực thủ công và dự đoán tự động. Trong giai đoạn đầu, một phần ảnh được chú thích
+thủ công thông qua công cụ LabelMe. Các ảnh đã chú thích này sau đó được sử dụng làm tập
+huấn luyện để huấn luyện mô hình phân đoạn, mô hình này sau đó tạo ra dự đoán cho các ảnh
+còn lại. Các chỉnh sửa nhỏ được áp dụng cho các chú thích được dự đoán để đảm bảo độ chính
+xác. Phương pháp lai ghép này đã cải thiện đáng kể hiệu quả trong khi duy trì chất lượng chú
+thích cao. Khi tạo các bộ dữ liệu liên quan đến công việc chú thích rộng rãi, công cụ dự đoán
+chú thích là rất quan trọng. Chúng tôi đánh giá hiệu suất phân đoạn của một số mô hình SOTA
+hiện tại trên CVRP và chọn Mask2Former, mô hình hoạt động tốt nhất trong số đó, cho mục đích
+của chúng tôi.
+
+Độ chính xác phân đoạn của các mô hình thông thường đối với bông lúa vẫn chưa tối ưu. Sự
+tương đồng về hình ảnh giữa bông lúa và lá xung quanh đặt ra một thách thức độc đáo, đòi hỏi
+các kỹ thuật trích xuất đặc trưng tinh vi hơn. Để giải quyết những thách thức này, có thể có
+lợi khi tinh chỉnh các mô hình lớn như SAM để phù hợp hơn với các nhiệm vụ phân đoạn cụ thể.
+Một phương pháp thay thế là thiết kế mô hình tùy chỉnh được điều chỉnh đặc biệt cho nhiệm vụ
+phân đoạn bông lúa. Phương pháp này có thể mang lại độ chính xác cao hơn so với các mô hình
+phân đoạn đa mục đích. Các phương pháp có mục tiêu như vậy có thể bao gồm việc kết hợp kiến
+thức đặc thù theo lĩnh vực và sử dụng các kỹ thuật tiên tiến như cơ chế chú ý hoặc tổng hợp
+đặc trưng đa tỷ lệ, nhằm nâng cao hiệu suất.
+
+% ===================================================================
+\section*{Tính khả dụng của dữ liệu}
+
+Bộ dữ liệu CVRP được công bố công khai trên Hugging Face tại
+\url{https://huggingface.co/datasets/CVRPDataset/CVRP} để sử dụng học thuật theo giấy phép
+được quy định. Mã nguồn và các mô hình đã huấn luyện có tại
+\url{https://huggingface.co/CVRPDataset/Model}. Bộ dữ liệu, mã nguồn và mô hình đã huấn luyện
+cũng có tại \url{http://bic.njau.edu.cn/CVRP.html}.
+
+% ===================================================================
+\section*{Đóng góp của tác giả}
+
+X.G. thiết kế nghiên cứu. Z.T. đóng góp vào xử lý dữ liệu, mô hình hóa mạng nơ-ron, chú
+thích và kiểm tra ảnh. J.S. đóng góp vào thu thập dữ liệu, chú thích và kiểm tra ảnh. Y.T.
+đóng góp vào canh tác cây và thu thập dữ liệu. J.X. đóng góp vào tái tạo mục tiêu 3D. W.Z.
+đóng góp vào mô hình hóa và huấn luyện mạng nơ-ron. G.J. đóng góp vào thu thập mẫu cây, và
+J.D. đóng góp vào tái tạo mục tiêu 3D. Z.T. và X.G. viết bản thảo. Tất cả tác giả đã đọc và
+phê duyệt bản thảo.
+
+% ===================================================================
+\section*{Tài trợ}
+
+Công trình này được hỗ trợ một phần bởi các tài trợ từ Dự án Khoa học và Công nghệ Quốc gia
+Trọng điểm Nhân giống Sinh học (Mã số 2023ZD04076), Quỹ Khoa học Tự nhiên Quốc gia Trung
+Quốc (Mã số 32170647), Quỹ Khoa học Tự nhiên Tỉnh Giang Tô Trung Quốc (Mã số BK20212010 và
+BE2022383), Trung tâm Nghiên cứu Kỹ thuật Giang Tô về Chỉnh sửa Genome Thực vật, Công ty
+TNHH Nghiên cứu và Phát triển Lúa Japonica Phía Nam, và Trung tâm Đổi mới Hợp tác Giang Tô
+về Sản xuất Cây trồng Hiện đại.
+
+% ===================================================================
+\section*{Tuyên bố về lợi ích cạnh tranh}
+
+Các tác giả tuyên bố rằng họ không có lợi ích tài chính cạnh tranh hoặc mối quan hệ cá nhân
+đã biết nào có thể xuất hiện để ảnh hưởng đến công trình được báo cáo trong bài báo này.
+
+% ===================================================================
+\section*{Lời cảm ơn}
+
+Chúng tôi cảm ơn Giáo sư Jianmin Wan vì những đề xuất quý báu và Ông Zhitao Zhu, Ông Yu
+Wang, TS. Weijie Tang, và TS. Yunhui Zhang vì sự hỗ trợ kỹ thuật của họ.
+
+% ===================================================================
+\begin{thebibliography}{99}
+
+\bibitem{chandra2020}
+A.L. Chandra, S.V. Desai, V.N. Balasubramanian, S. Ninomiya, W. Guo,
+Học tích cực với giám sát điểm để phát hiện bông lúa hiệu quả về chi phí trong cây ngũ cốc,
+\textit{Plant Methods} 16 (2020) 1--16.
+
+\bibitem{xiong2017}
+X. Xiong, L. Duan, L. Liu, H. Tu, P. Yang, D. Wu, G. Chen, L. Xiong, W. Yang, Q. Liu,
+Panicle-SEG: một phương pháp phân đoạn ảnh mạnh mẽ cho bông lúa ngoài đồng dựa trên học sâu
+và tối ưu hóa superpixel,
+\textit{Plant Methods} 13 (2017) 1--15.
+
+\bibitem{bai2018}
+X. Bai, Z. Cao, L. Zhao, J. Zhang, C. Lv, C. Li, J. Xie,
+Quan sát tự động giai đoạn trỗ bông lúa bằng phương pháp phát hiện bông lúa dựa trên tầng
+nhiều bộ phân loại,
+\textit{Agric. For. Meteorol.} 259 (2018) 260--270.
+
+\bibitem{hayat2020}
+M.A. Hayat, J. Wu, Y. Cao,
+Học Bayesian không giám sát để phân đoạn bông lúa với ảnh UAV,
+\textit{Plant Methods} 16 (1) (2020) 18.
+
+\bibitem{xiao2023}
+L. Xiao, Z. Pan, X. Du, W. Chen, W. Qu, Y. Bai, T. Xu,
+Kết hợp đặc trưng skip-connection có trọng số: một phương pháp tăng cường phân đoạn ảnh bông
+lúa theo định hướng UAV,
+\textit{Comput. Electron. Agric.} 207 (2023) 107754.
+
+\bibitem{zhou2023}
+Q. Zhou, W. Guo, N. Chen, Z. Wang, G. Li, Y. Ding, S. Ninomiya, Y. Mu,
+Phân tích tác động của nitơ đến sự phát triển bông lúa bằng phát hiện bông và theo dõi theo
+chuỗi thời gian,
+\textit{Plant Phenomics} 5 (2023) 48.
+
+\bibitem{wang2021}
+H. Wang, S. Lyu, Y. Ren,
+Bộ dữ liệu ảnh lúa nước để phân đoạn bông,
+\textit{Agronomy} 11 (8) (2021) 1542.
+
+\bibitem{david2020}
+E. David và cộng sự,
+Bộ dữ liệu phát hiện đầu lúa mì toàn cầu (GWHD): một bộ dữ liệu ảnh RGB độ phân giải cao
+được gán nhãn đa dạng và chất lượng cao để phát triển và đánh giá chuẩn các phương pháp phát
+hiện đầu lúa mì,
+\textit{Plant Phenomics} 2020 (2020) 12.
+
+\bibitem{david2021}
+E. David và cộng sự,
+Phát hiện đầu lúa mì toàn cầu 2021: bộ dữ liệu cải tiến để đánh giá chuẩn các phương pháp
+phát hiện đầu lúa mì,
+\textit{Plant Phenomics} 2021 (2021) 9.
+
+\bibitem{hani2020}
+N. H{\"a}ni, P. Roy, V. Isler,
+MinneApple: một bộ dữ liệu chuẩn để phát hiện và phân đoạn táo,
+\textit{IEEE Rob. Autom. Lett.} 5 (2) (2020) 852--858.
+
+\bibitem{vgg2016}
+A. Dutta, A. Gupta, A. Zissermann,
+VGG image annotator (VIA),
+[Online]. Có tại: \url{http://www.robots.ox.ac.uk/vgg/software/via/}, 2016.
+
+\bibitem{russell2008}
+B.C. Russell, A. Torralba, K.P. Murphy, W.T. Freeman,
+LabelMe: cơ sở dữ liệu và công cụ chú thích ảnh dựa trên web,
+\textit{Int. J. Comput. Vis.} 77 (2008) 157--173.
+
+\bibitem{mmseg2020}
+Mms Contributors,
+MMSegmentation: bộ công cụ và chuẩn phân đoạn ngữ nghĩa OpenMMLab,
+[Online]. Có tại: \url{https://github.com/open-mmlab/mmsegmentation}, 2020.
+
+\bibitem{kirillov2023}
+A. Kirillov và cộng sự,
+Segment anything,
+trong: \textit{Proceedings of the IEEE/CVF International Conference on Computer Vision},
+2023, tr. 4015--4026.
+
+\bibitem{ravi2024}
+N. Ravi và cộng sự,
+SAM 2: Segment Anything in Images and Videos.
+
+\bibitem{xu2023}
+J. Xu, W. Zhao, Z. Tang, X. Gan,
+Phương pháp tái tạo mục tiêu 3D và phân đoạn đa cấp một điểm dừng,
+\textit{ArXiv Prepr.} ArXiv2308.06974 (2023).
+
+\bibitem{chen2018}
+L.-C. Chen, Y. Zhu, G. Papandreou, F. Schroff, H. Adam,
+Bộ mã hóa-giải mã với tích chập phân tách atrous để phân đoạn ảnh ngữ nghĩa,
+trong: \textit{Proceedings of the European Conference on Computer Vision (ECCV)},
+2018, tr. 801--818.
+
+\bibitem{cheng2022}
+B. Cheng, I. Misra, A.G. Schwing, A. Kirillov, R. Girdhar,
+Masked-attention mask transformer để phân đoạn ảnh phổ quát,
+trong: \textit{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+2022, tr. 1290--1299.
+
+\bibitem{xie2021}
+E. Xie, W. Wang, Z. Yu, A. Anandkumar, J.M. Alvarez, P. Luo,
+SegFormer: thiết kế đơn giản và hiệu quả cho phân đoạn ngữ nghĩa với transformer,
+\textit{Adv. Neural Inf. Process. Syst.} 34 (2021) 12077--12090.
+
+\bibitem{zhang2021}
+W. Zhang, J. Pang, K. Chen, C.C. Loy,
+K-net: hướng tới phân đoạn ảnh thống nhất,
+\textit{Adv. Neural Inf. Process. Syst.} 34 (2021) 10326--10338.
+
+\end{thebibliography}
+
+\end{document}
