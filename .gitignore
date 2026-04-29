@@ -33,6 +33,20 @@ Thumbs.db
 .vscode/
 .idea/
 
+# LaTeX build artifacts
+*.lof
+*.lot
+*.fls
+*.log
+*.fdb_latexmk
+*.synctex.gz
+*.nav
+*.snm
+
+# Generated document exports
+*.docx
+*.pdf
+
 # Temporary files
 *.tmp
 *.swp

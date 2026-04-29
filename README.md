@@ -1,6 +1,6 @@
 # CVRP xAI — Rice Panicle Segmentation with Explainable AI
 
-Tái tạo và mở rộng bài báo **"CVRP: A rice image dataset with high-quality annotations for image segmentation and plant phenomics research"** (Tang et al., *Plant Phenomics* 2025) với phần ứng dụng **Explainable AI (xAI)**.
+Tái tạo và mở rộng bài báo **"CVRP: A rice image dataset with high-quality annotations for image segmentation and plant phenomics research"** (Tang et al., _Plant Phenomics_ 2025) với phần ứng dụng **Explainable AI (xAI)**.
 
 ---
 
@@ -105,6 +105,7 @@ pip install grad-cam captum scikit-image segment-anything
 ## Reproduce từng bước
 
 ### Bước 1 — Tải dataset
+
 ```bash
 # Từ HuggingFace
 python -c "
@@ -114,6 +115,7 @@ snapshot_download(repo_id='CVRPDataset/CVRP', repo_type='dataset', local_dir='CV
 ```
 
 ### Bước 2 — Chuẩn bị data
+
 ```bash
 conda activate cvrp_seg
 python scripts/prepare_data.py        # Tạo train/val/field_test split
@@ -122,6 +124,7 @@ python scripts/verify_data.py         # Kiểm tra: tất cả phải hiện OK
 ```
 
 ### Bước 3 — Tải pretrained weights
+
 ```bash
 bash scripts/download_pretrained.sh   # ~600MB
 # Tải thêm SAM nếu cần grain segmentation:
@@ -129,6 +132,7 @@ wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth -P che
 ```
 
 ### Bước 4 — Training (80k iter mỗi model)
+
 ```bash
 export PYTHONPATH=/path/to/CVRP_xAI:$PYTHONPATH
 nohup bash scripts/train_all.sh > train_all.log 2>&1 &
@@ -137,6 +141,7 @@ nohup bash scripts/train_all.sh > train_all.log 2>&1 &
 ```
 
 ### Bước 5 — Evaluation
+
 ```bash
 bash scripts/run_eval.sh
 # → results/tables/seg_multicult_results.csv  (Table 2)
@@ -144,6 +149,7 @@ bash scripts/run_eval.sh
 ```
 
 ### Bước 6 — Visualization
+
 ```bash
 python scripts/analyze_dataset.py        # Dataset figures
 python scripts/visualize_seg_results.py  # Seg result figures
@@ -154,6 +160,7 @@ python scripts/render_3d.py              # 3D render (cần open3d)
 ```
 
 ### Bước 7 — xAI
+
 ```bash
 python scripts/run_xai.py              # GradCAM++, EigenCAM, EPG
 python scripts/run_counterfactual.py   # Occlusion Map, Del/Ins AUC, Superpixel CF
@@ -165,36 +172,138 @@ python scripts/run_counterfactual.py   # Occlusion Map, Del/Ins AUC, Superpixel 
 
 ### Segmentation — Val Set (tái tạo Table 2 của paper)
 
-| Model | Panicle IoU (ours) | Panicle IoU (paper) | Δ |
-|---|---|---|---|
-| DeepLabV3+ (ResNet-101) | 65.66% | 71.02% | -5.36 |
-| SegFormer (MiT-B2) | 66.61% | 71.19% | -4.58 |
-| K-Net (Swin-B) | **75.56%** | 72.53% | **+3.03** |
-| Mask2Former (Swin-B) | **77.58%** | 73.38% | **+4.20** |
+| Model                   | Panicle IoU (ours) | Panicle IoU (paper) | Δ         |
+| ----------------------- | ------------------ | ------------------- | --------- |
+| DeepLabV3+ (ResNet-101) | 65.66%             | 71.02%              | -5.36     |
+| SegFormer (MiT-B2)      | 66.61%             | 71.19%              | -4.58     |
+| K-Net (Swin-B)          | **75.56%**         | 72.53%              | **+3.03** |
+| Mask2Former (Swin-B)    | **77.58%**         | 73.38%              | **+4.20** |
 
 ### xAI — Saliency (Energy Pointing Game)
 
-| Model | Method | Val EPG | Field EPG |
-|---|---|---|---|
-| DeepLabV3+ | GradCAM++ | **0.167** | **0.234** |
-| SegFormer | GradCAM++ | 0.094 | 0.157 |
-| K-Net | GradCAM++ | 0.062 | 0.100 |
-| Mask2Former | EigenCAM | 0.073 | 0.147 |
+| Model       | Method    | Val EPG   | Field EPG |
+| ----------- | --------- | --------- | --------- |
+| DeepLabV3+  | GradCAM++ | **0.167** | **0.234** |
+| SegFormer   | GradCAM++ | 0.094     | 0.157     |
+| K-Net       | GradCAM++ | 0.062     | 0.100     |
+| Mask2Former | EigenCAM  | 0.073     | 0.147     |
 
 ### xAI — Counterfactual (Deletion AUC / Insertion AUC)
 
-| Model | Del AUC | Ins AUC | Interpretation |
-|---|---|---|---|
-| DeepLabV3+ | 45.37 | 43.59 | CNN focus cụ thể vào panicle texture |
+| Model      | Del AUC | Ins AUC | Interpretation                       |
+| ---------- | ------- | ------- | ------------------------------------ |
+| DeepLabV3+ | 45.37   | 43.59   | CNN focus cụ thể vào panicle texture |
+
+---
+
+## Kết quả Explainable AI (xAI)
+
+### 1. Saliency Maps
+
+**GradCAM++** và **EigenCAM** được sử dụng để tạo bản đồ saliency, giúp giải thích các quyết định của mô hình segmentation:
+
+- **GradCAM++**: Hiệu quả trên các mô hình CNN (DeepLabV3+, SegFormer).
+- **EigenCAM**: Tối ưu cho các mô hình Transformer (K-Net, Mask2Former).
+
+**Kết quả định lượng (Energy Pointing Game - EPG):**
+| Mô hình | Val Set EPG | Field Test EPG |
+|-----------------|------------|----------------|
+| DeepLabV3+ | 0.167 | 0.234 |
+| SegFormer | 0.094 | 0.157 |
+| K-Net | 0.062 | 0.100 |
+| Mask2Former | 0.073 | 0.147 |
+
+### 2. Counterfactual Explanations
+
+Các phương pháp counterfactual được áp dụng để kiểm tra tính nhạy cảm của mô hình:
+
+- **Occlusion Map**: Hiển thị các vùng ảnh quan trọng.
+- **Deletion/Insertion AUC**: Đánh giá mức độ ảnh hưởng của từng vùng ảnh.
+- **Superpixel-based Counterfactuals**: Tạo các ảnh giả định để kiểm tra phản ứng của mô hình.
+
+### 3. Visualization
+
+Các hình ảnh minh họa được lưu trong thư mục `results/figures/06_xai/`:
+
+- **comparison/**: So sánh CNN vs Transformer.
+- **counterfactual/**: Bản đồ occlusion và superpixel CF.
+- **gradcam/**: Saliency maps từ GradCAM++.
+- **quantitative/**: Biểu đồ định lượng EPG.
 
 ---
 
 ## References chính
 
-1. Tang et al. "CVRP: A rice image dataset..." *Plant Phenomics* 2025
-2. Chattopadhay et al. "Grad-CAM++..." *WACV 2018*
-3. Muhammad & Yeasin "EigenCAM..." *ICIP 2020*
-4. Samek et al. "Evaluating the Visualization..." *IEEE TNNLS 2017*
-5. Petsiuk et al. "RISE..." *BMVC 2018*
-6. Zeiler & Fergus "Visualizing and Understanding CNNs" *ECCV 2014*
-7. Kirillov et al. "Segment Anything" *ICCV 2023*
+1. Tang et al. "CVRP: A rice image dataset..." _Plant Phenomics_ 2025
+2. Chattopadhay et al. "Grad-CAM++..." _WACV 2018_
+3. Muhammad & Yeasin "EigenCAM..." _ICIP 2020_
+4. Samek et al. "Evaluating the Visualization..." _IEEE TNNLS 2017_
+5. Petsiuk et al. "RISE..." _BMVC 2018_
+6. Zeiler & Fergus "Visualizing and Understanding CNNs" _ECCV 2014_
+7. Kirillov et al. "Segment Anything" _ICCV 2023_
+
+---
+
+## Phân tích Explainable AI (xAI)
+
+### Tổng quan
+
+Các kỹ thuật Explainable AI (xAI) đã được áp dụng để tăng cường khả năng giải thích của các mô hình phân đoạn trong dự án này. Phân tích tập trung vào việc tạo bản đồ saliency và giải thích counterfactual nhằm cung cấp cái nhìn sâu sắc về quá trình ra quyết định của mô hình.
+
+### Bản đồ Saliency
+
+Bản đồ saliency làm nổi bật các vùng của ảnh đầu vào đóng góp nhiều nhất vào dự đoán của mô hình. Hai phương pháp đã được sử dụng:
+
+1. **GradCAM++**: Hiệu quả cho các mô hình dựa trên CNN như DeepLabV3+ và SegFormer.
+2. **EigenCAM**: Tối ưu cho các mô hình dựa trên Transformer như K-Net và Mask2Former.
+
+#### Kết quả Định lượng
+
+Chỉ số Energy Pointing Game (EPG) được sử dụng để đánh giá chất lượng của bản đồ saliency. Giá trị EPG cao hơn cho thấy sự phù hợp tốt hơn giữa bản đồ saliency và ground truth.
+
+| Mô hình     | Val Set EPG | Field Test EPG |
+| ----------- | ----------- | -------------- |
+| DeepLabV3+  | 0.167       | 0.234          |
+| SegFormer   | 0.094       | 0.157          |
+| K-Net       | 0.062       | 0.100          |
+| Mask2Former | 0.073       | 0.147          |
+
+#### Minh họa
+
+Dưới đây là các ví dụ về bản đồ saliency được tạo bằng GradCAM++ và EigenCAM:
+
+- **Kết quả GradCAM++**:
+  ![Kết quả GradCAM++](results/figures/06_xai/gradcam/fig_cam_4models_grid.png)
+
+- **Phân tích Định lượng**:
+  ![Kết quả Định lượng](results/figures/06_xai/quantitative/fig_cam_quantitative.png)
+
+### Giải thích Counterfactual
+
+Giải thích counterfactual được sử dụng để đánh giá độ nhạy của các mô hình đối với các vùng cụ thể trong ảnh đầu vào. Các phương pháp sau đã được áp dụng:
+
+1. **Occlusion Map**: Xác định các vùng quan trọng bằng cách che khuất từng phần của ảnh đầu vào.
+2. **Deletion/Insertion AUC**: Đo lường tác động của việc loại bỏ hoặc thêm các vùng ảnh vào dự đoán của mô hình.
+3. **Superpixel-based Counterfactuals**: Tạo các kịch bản giả định để kiểm tra độ bền vững của mô hình.
+
+#### Minh họa
+
+Ví dụ về giải thích counterfactual:
+
+- **Occlusion Map**:
+  ![Occlusion Map](results/figures/06_xai/counterfactual/fig_occlusion_cf_map.png)
+
+- **Deletion/Insertion AUC**:
+  ![Deletion/Insertion AUC](results/figures/06_xai/counterfactual/fig_deletion_insertion.png)
+
+- **Superpixel-based Counterfactuals**:
+  ![Superpixel Counterfactuals](results/figures/06_xai/counterfactual/fig_superpixel_cf.png)
+
+### So sánh Mô hình
+
+Phân tích so sánh giữa các mô hình CNN và Transformer đã được thực hiện để hiểu rõ hơn về điểm mạnh và điểm yếu của chúng trong khả năng giải thích.
+
+- **So sánh CNN và Transformer**:
+  ![So sánh CNN và Transformer](results/figures/06_xai/comparison/fig_cnn_vs_transformer.png)
+
+---
