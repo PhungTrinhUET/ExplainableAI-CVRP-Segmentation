@@ -44,8 +44,6 @@ Thumbs.db
 *.snm
 
 # Generated document exports
-*.docx
-*.pdf
 report/docx_media/
 
 # Temporary files
