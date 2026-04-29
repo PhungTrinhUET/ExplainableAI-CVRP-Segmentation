@@ -46,6 +46,7 @@ Thumbs.db
 # Generated document exports
 *.docx
 *.pdf
+report/docx_media/
 
 # Temporary files
 *.tmp
